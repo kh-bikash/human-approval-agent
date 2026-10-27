@@ -172,3 +172,22 @@ class ApprovalStore:
                 "SELECT actor,event,at FROM audit WHERE request_id=? ORDER BY id",
                 (request_id,),
             ).fetchall()
+
+    def reconcile(self, request_id: str, *, actor: str, outcome: str) -> str:
+        """Resolve a crash-stuck execution after checking the external side effect."""
+        if not actor.strip() or outcome not in {"completed", "failed"}:
+            raise ValueError("actor and completed/failed outcome required")
+        with self._db() as db:
+            now = time.time()
+            updated = db.execute(
+                "UPDATE requests SET status=?,updated_at=? WHERE id=? AND status='executing'",
+                (outcome, now, request_id),
+            ).rowcount
+            if updated:
+                db.execute(
+                    "INSERT INTO audit(request_id,actor,event,at) VALUES(?,?,?,?)",
+                    (request_id, actor, "reconciled:" + outcome, now),
+                )
+        if not updated:
+            raise ValueError("request is not executing")
+        return outcome

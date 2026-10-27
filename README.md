@@ -4,6 +4,8 @@ Pause uncertain actions, record human decisions, and resume only an approved imm
 
 Set `ttl_seconds` for expiring requests and an `idempotency_key` for callers that may retry proposal creation. Reviewer authentication remains the responsibility of the API that calls `decide`.
 
+After a process crash during an external side effect, an operator can inspect the downstream system and call `reconcile(request_id, actor=..., outcome="completed" | "failed")`. Reconciliation is audited and never repeats the side effect.
+
 ## Quick start
 
 Requires Python 3.11 or newer. From this repository:
@@ -11,6 +13,15 @@ Requires Python 3.11 or newer. From this repository:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install -e '.[dev]'
+pytest -q
+```
+
+On macOS or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 python -m pip install -e '.[dev]'
 pytest -q
 ```

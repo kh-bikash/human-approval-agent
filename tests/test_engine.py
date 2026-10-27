@@ -39,3 +39,17 @@ def test_idempotency_and_expiration(tmp_path):
     time.sleep(0.02)
     with pytest.raises(ValueError):
         store.decide(one.id, actor="reviewer", approve=True)
+
+
+def test_operator_reconciles_crash_stuck_execution(tmp_path):
+    store = ApprovalStore(tmp_path / "approval.db")
+    request = store.propose("send", {"x": 1}, confidence=1)
+    with store._db() as db:
+        db.execute("UPDATE requests SET status='executing' WHERE id=?", (request.id,))
+    assert (
+        store.reconcile(request.id, actor="operator", outcome="completed")
+        == "completed"
+    )
+    assert store.history(request.id)[-1][1] == "reconciled:completed"
+    with pytest.raises(ValueError):
+        store.reconcile(request.id, actor="operator", outcome="failed")
