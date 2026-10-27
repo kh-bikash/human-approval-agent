@@ -42,6 +42,28 @@ print(store.history(request.id))
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    Proposal[Proposed action] --> Gate[Confidence and expiry policy]
+    Gate -->|Needs review| Pending[(Pending request)]
+    Pending --> Reviewer[Authenticated reviewer integration]
+    Reviewer -->|Approve| Approved[(Approved)]
+    Reviewer -->|Reject| Rejected[(Rejected)]
+    Gate -->|High confidence| Approved
+    Approved --> Execute[Idempotent executor]
+    Execute --> Outcome[(Completed or failed)]
+    Execute -->|Crash recovery| Reconcile[Operator reconciliation]
+    Gate --> Audit[(Audit log)]
+    Reviewer --> Audit
+    Reconcile --> Audit
+```
+
+| Component | Responsibility |
+|---|---|
+| Request store | Persists immutable payload, digest, expiry, and idempotency key. |
+| Review transition | Records actor decisions in a transaction. |
+| Execution checkpoint | Resumes approved work once and supports audited reconciliation. |
+
 Proposal -> SQLite pending checkpoint -> authenticated reviewer integration -> atomic status transition -> executor -> completed or failed audit event.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for components, state, failure behavior, and operations.
