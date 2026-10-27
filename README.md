@@ -2,6 +2,8 @@
 
 Pause uncertain actions, record human decisions, and resume only an approved immutable payload with an audit trail.
 
+Set `ttl_seconds` for expiring requests and an `idempotency_key` for callers that may retry proposal creation. Reviewer authentication remains the responsibility of the API that calls `decide`.
+
 ## Quick start
 
 Requires Python 3.11 or newer. From this repository:

@@ -20,3 +20,16 @@ def test_rejection_is_terminal(tmp_path):
     assert store.decide(request.id, actor="owner", approve=False) == "rejected"
     with pytest.raises(PermissionError):
         store.resume(request.id, executor=lambda *_: None)
+
+
+def test_idempotency_and_expiration(tmp_path):
+    store = ApprovalStore(tmp_path / "approval.db")
+    one = store.propose("send", {"x": 1}, confidence=0.1, idempotency_key="event-1", ttl_seconds=0.01)
+    two = store.propose("send", {"x": 1}, confidence=0.1, idempotency_key="event-1")
+    assert one.id == two.id
+    with pytest.raises(ValueError):
+        store.propose("send", {"x": 2}, confidence=0.1, idempotency_key="event-1")
+    import time
+    time.sleep(0.02)
+    with pytest.raises(ValueError):
+        store.decide(one.id, actor="reviewer", approve=True)

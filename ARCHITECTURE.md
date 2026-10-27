@@ -29,3 +29,9 @@ The application should propagate failed operations to its caller or queue so the
 3. Persist SQLite files on durable storage and back them up; migrate to a managed database for high write volume or multiple replicas.
 4. Run `pytest -q` in CI before deployment.
 5. Define workload specific evaluation cases, latency objectives, and rollback criteria before serving real users.
+
+## Durable approval state
+
+`requests` stores the immutable action, canonical JSON payload, SHA-256 digest, status, timestamps, and expiry. `request_keys` maps caller idempotency keys to requests; replaying a key with different payload is rejected. `audit` stores actor, event, and time. Low confidence proposals pause as `pending`; higher confidence proposals become `approved` according to the caller's threshold. Expired requests cannot be approved or executed.
+
+`decide` uses one transactional status transition and records the review event. `resume` atomically changes `approved` to `executing`, checks the digest, calls the supplied executor, then marks `completed` or `failed`. It will not execute the same request twice through the normal API. A process crash between an external side effect and the completion record can leave `executing`; an operator must reconcile it. Use the request ID as the external idempotency key. This package records reviewer identity but relies on an authenticated service to establish it.
