@@ -173,6 +173,31 @@ class ApprovalStore:
                 (request_id,),
             ).fetchall()
 
+    def list_requests(
+        self, *, status: str | None = None, limit: int = 100
+    ) -> list[Request]:
+        if limit < 1 or limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT id,action,payload,status,created_at FROM requests "
+                "WHERE (? IS NULL OR status=?) ORDER BY created_at DESC LIMIT ?",
+                (status, status, limit),
+            ).fetchall()
+        return [
+            Request(row[0], row[1], json.loads(row[2]), row[3], row[4]) for row in rows
+        ]
+
+    def get(self, request_id: str) -> Request | None:
+        with self._db() as db:
+            row = db.execute(
+                "SELECT id,action,payload,status,created_at FROM requests WHERE id=?",
+                (request_id,),
+            ).fetchone()
+        return (
+            Request(row[0], row[1], json.loads(row[2]), row[3], row[4]) if row else None
+        )
+
     def reconcile(self, request_id: str, *, actor: str, outcome: str) -> str:
         """Resolve a crash-stuck execution after checking the external side effect."""
         if not actor.strip() or outcome not in {"completed", "failed"}:

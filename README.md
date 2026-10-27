@@ -28,6 +28,8 @@ pytest -q
 
 This project uses deterministic tests and needs no model key for verification.
 
+The installed `approval-agent` product runs an actual review queue for local file writes. Run `approval-agent --db approvals.sqlite3 --outdir approved-output propose report.txt "Approved content"`, copy the returned request ID, then run `approval-agent --db approvals.sqlite3 approve ID --actor reviewer-1` and `approval-agent --db approvals.sqlite3 --outdir approved-output execute ID`. `list` and `history ID` inspect the durable state. For the browser, run `approval-agent --db approvals.sqlite3 --outdir approved-output serve --port 8080` and open `http://127.0.0.1:8080`. Keep the browser bound to localhost; the host operator controls who can review.
+
 ```python
 from human_approval_agent.engine import ApprovalStore
 
@@ -44,6 +46,8 @@ print(store.history(request.id))
 
 ```mermaid
 flowchart LR
+    CLI[Command line] --> Proposal
+    Browser[Browser interface] --> Proposal
     Proposal[Proposed action] --> Gate[Confidence and expiry policy]
     Gate -->|Needs review| Pending[(Pending request)]
     Pending --> Reviewer[Authenticated reviewer integration]
@@ -69,6 +73,8 @@ Proposal -> SQLite pending checkpoint -> authenticated reviewer integration -> a
 See [ARCHITECTURE.md](ARCHITECTURE.md) for components, state, failure behavior, and operations.
 
 ## Deployment and safety
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the non-root container, token-protected browser, data mounts, and release checks.
 
 The library records actor names but does not authenticate them; the integrating API must authenticate reviewers. External side effects need idempotency keys because a process crash during execution cannot be rolled back automatically.
 

@@ -9,6 +9,9 @@ description = "Durable approval checkpoints and audited resume."
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+approval-agent = "human_approval_agent.__main__:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff==0.17.3"]
 
