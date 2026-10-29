@@ -1,10 +1,17 @@
 # Human Approval Agent
 
-Pause uncertain actions, record human decisions, and resume only an approved immutable payload with an audit trail.
+## About
 
-Set `ttl_seconds` for expiring requests and an `idempotency_key` for callers that may retry proposal creation. Reviewer authentication remains the responsibility of the API that calls `decide`.
+Some actions should wait for a person before they happen. This app keeps those actions in a review queue: it records exactly what was proposed, lets an authorized reviewer approve or reject it, and executes only the approved version. Every decision and state change is saved so an operator can see what happened later.
 
-After a process crash during an external side effect, an operator can inspect the downstream system and call `reconcile(request_id, actor=..., outcome="completed" | "failed")`. Reconciliation is audited and never repeats the side effect.
+### What you can do
+
+- Propose a local file write and receive a request ID for review.
+- List pending requests, approve or reject them, and inspect their history.
+- Resume an approved request without silently changing its payload.
+- Reconcile a request after a crash without repeating an uncertain external action.
+
+The CLI and local operator browser use a durable SQLite store. The Python library can gate other actions, such as sending a message or changing a record, when integrated with a trusted executor. The caller must authenticate reviewers; this library records who approved an action but does not verify their identity on its own. There is no public hosted URL yet.
 
 ## Quick start
 
